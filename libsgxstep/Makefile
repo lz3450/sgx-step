@@ -28,11 +28,17 @@ ifeq ($(GRAMINE), 1)
 	SOURCES += ./../sdk/gramine/aep.c
 endif
 
-all: $(OUTPUT)
+all: $(OUTPUT) compile_commands.json
 
 $(OUTPUT): $(OBJECTS)
 	echo "$(INDENT)[AR] " $(OUTPUT)
 	$(AR) $(ARFLAGS) $(OUTPUT) $(OBJECTS)
+
+compile_commands.json : $(patsubst %.c, %.o.json, $(SOURCES))
+	sed -e '1s/^/[\n/' -e '$$ s/,$$/\n]/' -e 's|/usr/lib/llvm-12/bin/clang|/usr/bin/gcc|' $^ > compile_commands.json
+
+%.o.json : %.c
+	clang $(CPPFLAGS) $(CFLAGS) $(INCLUDE) -c $< -MJ $@
 
 %.o : %.c
 	echo "$(INDENT)[CC] " $<
@@ -45,3 +51,4 @@ $(OUTPUT): $(OBJECTS)
 clean:
 	echo "$(INDENT)[RM]" $(OBJECTS) $(OUTPUT)
 	rm -f $(OBJECTS) $(OUTPUT)
+	rm -f $(wildcard *.o.json) compile_commands.json

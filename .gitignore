@@ -16,3 +16,6 @@
 *.mk
 *.mod
 *.swn
+
+compile_commands.json
+.cache
