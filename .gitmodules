@@ -7,3 +7,6 @@
 [submodule "sdk/gramine"]
 	path = sdk/gramine/gramine
 	url = https://github.com/gramineproject/gramine.git
+[submodule "app/mlside"]
+	path = app/mlside
+	url = https://gitlab.com/s3lab-code/private/research/aivault/mlside-app.git
