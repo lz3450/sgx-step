@@ -43,6 +43,7 @@ void *spy_init(void *arg)
 
     libsgxstep_info("continuing on CPU %d; calling spy at %p", get_designated_cpu(), init->fct);
     init->fct(init->eid);
+    return NULL;
 }
 
 int spawn_spy(int cpu, spy_thr_t spy, int eid)

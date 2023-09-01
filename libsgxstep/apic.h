@@ -89,7 +89,7 @@ static inline uint32_t apic_read(uint32_t reg)
 #define apic_timer_irq(tsc) apic_write(APIC_TMICT, tsc);
 #define apic_send_ipi_self(n) apic_write(APIC_ICR, APIC_ICR_VECTOR(n) | APIC_ICR_DELIVERY_FIXED | APIC_ICR_LEVEL_ASSERT | APIC_ICR_DEST_SELF)
 
-int apic_timer_oneshot(uint8_t vector);
-int apic_timer_deadline(void);
+void apic_timer_oneshot(uint8_t vector);
+void apic_timer_deadline(void);
 
 #endif

@@ -74,6 +74,7 @@ int file_write_int(const char *path, int data)
     int rv;
     FILE *f;
 
+    libsgxstep_info("Opening file %s", path);
     ASSERT( (f = fopen(path, "w")) );
     rv = fprintf(f, "%i", data);
     fclose(f);

@@ -63,7 +63,7 @@ void apic_init(void)
     ASSERT(apic_read(APIC_ID) != -1);
 }
 
-int apic_timer_oneshot(uint8_t vector)
+void apic_timer_oneshot(uint8_t vector)
 {
     /* Save APIC tmr config for later restore */
     apic_lvtt = apic_read(APIC_LVTT);
@@ -77,7 +77,7 @@ int apic_timer_oneshot(uint8_t vector)
         apic_read(APIC_LVTT), apic_read(APIC_TDCR));
 }
 
-int apic_timer_deadline(void)
+void apic_timer_deadline(void)
 {
     if (apic_lvtt)
     {

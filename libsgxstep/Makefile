@@ -21,6 +21,7 @@ endif
 SOURCES     = $(shell ls *.c)
 ASM         = $(shell ls *.S)
 OBJECTS     = $(SOURCES:.c=.o) $(ASM:.S=.o)
+CMDS		= $(SOURCES:.c=.o.json)
 OUTPUT      = libsgx-step.a
 
 ifeq ($(GRAMINE), 1)
@@ -31,24 +32,27 @@ endif
 all: $(OUTPUT) compile_commands.json
 
 $(OUTPUT): $(OBJECTS)
-	echo "$(INDENT)[AR] " $(OUTPUT)
-	$(AR) $(ARFLAGS) $(OUTPUT) $(OBJECTS)
+	$(info AR      $(OUTPUT))
+	@$(AR) $(ARFLAGS) $(OUTPUT) $(OBJECTS)
 
-compile_commands.json : $(patsubst %.c, %.o.json, $(SOURCES))
-	sed -e '1s/^/[\n/' -e '$$ s/,$$/\n]/' -e 's|/usr/lib/llvm-12/bin/clang|/usr/bin/gcc|' $^ > compile_commands.json
+compile_commands.json : $(CMDS)
+	$(info GEN     $@)
+	@sed -e '1s/^/[\n/' -e '$$ s/,$$/\n]/' $^ > compile_commands.json
+	@sed -E 's|/usr/lib/llvm-[0-9]+/bin/clang|/usr/bin/gcc|' -i compile_commands.json
 
 %.o.json : %.c
-	clang $(CPPFLAGS) $(CFLAGS) $(INCLUDE) -c $< -MJ $@
+	@clang $(CPPFLAGS) $(CFLAGS) $(INCLUDE) -c $< -MJ $@
 
 %.o : %.c
-	echo "$(INDENT)[CC] " $<
-	$(CC) $(CPPFLAGS) $(CFLAGS) $(INCLUDE) -c $< -o $@
+	$(info CC      $<)
+	@$(CC) $(CPPFLAGS) $(CFLAGS) $(INCLUDE) -c $< -o $@
 
 %.o : %.S
-	echo "$(INDENT)[AS] " $<
-	$(AS) $(ASFLAGS) $(INCLUDE) -c $< -o $@
+	$(info AS      $<)
+	@$(AS) $(ASFLAGS) $(INCLUDE) -c $< -o $@
 
 clean:
-	echo "$(INDENT)[RM]" $(OBJECTS) $(OUTPUT)
-	rm -f $(OBJECTS) $(OUTPUT)
-	rm -f $(wildcard *.o.json) compile_commands.json
+	$(info RM      $(OBJECTS) $(OUTPUT))
+	@rm -f $(OBJECTS) $(OUTPUT)
+	$(info RM      $(wildcard *.o.json) compile_commands.json)
+	@rm -f $(wildcard *.o.json) compile_commands.json

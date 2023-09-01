@@ -156,7 +156,7 @@ int prepare_system_for_benchmark(int pstate_perf_pct)
     return !(pstate_set_min_perf_pct(pstate_perf_pct) && pstate_set_max_perf_pct(pstate_perf_pct) && disable_turbo());
 }
 
-int print_system_settings(void)
+void print_system_settings(void)
 {
     int pin = 0;
 

