@@ -1,0 +1,9 @@
+enclave {
+	trusted {
+   	    public void nops(void);
+		public void *get_nop_address(void);
+	};
+
+	untrusted {
+	};
+};
