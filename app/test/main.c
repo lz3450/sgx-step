@@ -6,15 +6,14 @@
 #include "libsgxstep/config.h"
 
 #define DO_APIC_SW_IRQ  1
-#define DO_APIC_TMR_IRQ 0
+#define DO_APIC_TMR_IRQ 1
 #define DO_EXEC_PRIV    0
 #define NUM             100
-#define INFINITE_LOOP   1
-#define NEMESIS_HIGH    1
+#define NEMESIS_HIGH    0
 
 int             cpl = -1;
 uint64_t        flags = 0;
-extern uint64_t nemesis_tsc_aex, nemesis_tsc_eresume;
+extern uint32_t nemesis_tsc_aex, nemesis_tsc_eresume;
 
 void pre_irq(void)
 {
@@ -57,60 +56,56 @@ void do_irq_tmr(void)
 void post_irq(char *s)
 {
     ASSERT(__ss_irq_fired);
-    info("returned from %s IRQ: cpl=%d; irq_cpl=%d; flags=%p; count=%02d; nemesis=%d", s,
-         cpl, __ss_irq_cpl, flags, __ss_irq_count, nemesis_tsc_aex - nemesis_tsc_eresume);
+    info("returned from %s IRQ: cpl=%d; irq_cpl=%d; flags=%p; count=%02d; nemesis=%d",
+         s, cpl, __ss_irq_cpl, flags, __ss_irq_count, nemesis_tsc_aex - nemesis_tsc_eresume);
 }
 
 void do_irq_test(int do_exec_priv)
 {
 #if DO_APIC_SW_IRQ
-    printf("\n");
-    info_event("Triggering ring-3 software interrupts..");
-    for (int i = 0; i < NUM; i++)
-    {
-        do_irq_sw();
-        post_irq("software");
-    }
-
     if (do_exec_priv)
     {
-        printf("\n");
-        info_event("Triggering ring-0 software interrupts..");
-        for (int i = 0; i < NUM; i++)
-        {
-            cpl = -1;
-            exec_priv(do_irq_sw);
-            post_irq("software");
-        }
+        // info_event("Triggering ring-0 software interrupts..");
+        cpl = -1;
+        exec_priv(do_irq_sw);
+        post_irq("software");
     }
 #endif
 
 #if DO_APIC_TMR_IRQ
-    printf("\n");
-    info_event("Triggering ring-3 APIC timer interrupts..");
-    apic_timer_oneshot(IRQ_VECTOR);
-
-    for (int i = 0; i < NUM; i++)
-    {
-        do_irq_tmr();
-        post_irq("APIC timer");
-    }
-
     if (do_exec_priv)
     {
-        printf("\n");
-        info_event("Triggering ring-0 APIC timer interrupts..");
-        for (int i = 0; i < NUM; i++)
-        {
-            cpl = -1;
-            exec_priv(do_irq_tmr);
-            while (!__ss_irq_fired)
-                ;
-            post_irq("APIC timer");
-        }
+        // info_event("Triggering ring-0 APIC timer interrupts..");
+        cpl = -1;
+        exec_priv(do_irq_tmr);
+        while (!__ss_irq_fired)
+            ;
+        post_irq("APIC timer");
     }
     apic_timer_deadline();
 #endif
+}
+
+void do_irq_test_sw(int number)
+{
+    info_event("Triggering ring-3 software interrupts..");
+    while (number--)
+    {
+        do_irq_sw();
+        post_irq("software");
+    }
+}
+
+void do_irq_test_tmr(int number)
+{
+    info_event("Triggering ring-3 APIC timer interrupts..");
+    while (number--)
+    {
+        apic_timer_oneshot(IRQ_VECTOR);
+        do_irq_tmr();
+        post_irq("APIC timer");
+    }
+    apic_timer_deadline();
 }
 
 int main(int argc, char **argv)
@@ -127,10 +122,13 @@ int main(int argc, char **argv)
     info("back from exec_priv(pre_irq) with CPL=%d", cpl);
 #endif
 
-#if INFINITE_LOOP
-    while (1)
+#if DO_APIC_SW_IRQ
+    do_irq_test_sw(NUM);
 #endif
-        do_irq_test(/*do_exec_priv=*/DO_EXEC_PRIV);
+
+#if DO_APIC_TMR_IRQ
+    do_irq_test_tmr(NUM);
+#endif
 
     info("all is well; irq_count=%d; exiting..", __ss_irq_count);
     return 0;

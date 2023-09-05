@@ -16,7 +16,8 @@ LDFLAGS				+= -lsgx-step -lsgx_urts \
 
 SOURCES				= $(wildcard *.c)
 OBJECTS				= $(SOURCES:.c=.o)
-CMDS				= $(SOURCES:.c=.o.json) $(patsubst %.c,%.o.json,$(wildcard $(addsuffix /*.c,$(SUBDIRS))))
+CMDS				= $(SOURCES:.c=.o.json)
+SUBDIR_CMDS			= $(patsubst %.c,%.o.json,$(wildcard $(addsuffix /*.c,$(SUBDIRS))))
 OUTPUT				= app
 
 BUILDDIRS			= $(SUBDIRS:%=build-%)
@@ -28,9 +29,9 @@ $(OUTPUT) : $(BUILDDIRS) $(OBJECTS)
 	$(info LD      $(OUTPUT))
 	@$(LD) $(OBJECTS) $(LDFLAGS) -o $(OUTPUT)
 
-compile_commands.json : $(BUILDDIRS) $(OBJECTS)
+compile_commands.json : $(BUILDDIRS) $(CMDS)
 	$(info GEN     $@)
-	@sed -e '1s/^/[\n/' -e '$$ s/,$$/\n]/' $(CMDS) > $@
+	@sed -e '1s/^/[\n/' -e '$$ s/,$$/\n]/' $(CMDS) $(SUBDIR_CMDS) > $@
 	@sed -E 's|/usr/lib/llvm-[0-9]+/bin/clang|/usr/bin/gcc|' -i $@
 
 %.o : %.c
@@ -43,8 +44,8 @@ compile_commands.json : $(BUILDDIRS) $(OBJECTS)
 clean : $(CLEANDIRS)
 	$(info RM      $(OBJECTS) $(OUTPUT))
 	@rm -f $(OBJECTS) $(OUTPUT)
-	$(info RM      compile_commands.json)
-	@rm -f compile_commands.json
+	$(info RM      $(CMDS) compile_commands.json)
+	@rm -f $(CMDS) compile_commands.json
 
 $(BUILDDIRS) :
 	$(MAKE) -C $(@:build-%=%)
