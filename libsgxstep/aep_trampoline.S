@@ -76,6 +76,7 @@ sgx_step_aep_trampoline:
 
     rdtsc
     mov %eax, nemesis_tsc_eresume(%rip)
+    mov %edx, nemesis_tsc_eresume+4(%rip)
 
     mov $3, %xax                        /* ERESUME leaf */
 

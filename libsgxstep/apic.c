@@ -79,6 +79,7 @@ int apic_timer_oneshot(uint8_t vector)
     // see also: http://wiki.osdev.org/APIC_timer)
     libsgxstep_info("APIC timer one-shot mode with division 2 (lvtt=%x/tdcr=%x)",
         apic_read(APIC_LVTT), apic_read(APIC_TDCR));
+    return 0;
 }
 
 int apic_timer_deadline(uint8_t vector)
@@ -88,6 +89,7 @@ int apic_timer_deadline(uint8_t vector)
 
     /* In xAPIC mode the memory-mapped write to LVTT needs to be serialized. */
     asm volatile("mfence" : : : "memory");
+    return 0;
 }
 
 void apic_timer_deadline_irq(int tsc_diff)
