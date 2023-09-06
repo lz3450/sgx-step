@@ -22,7 +22,7 @@
 #define SGX_STEP_CONFIG
 
 // TODO add coarser-grained logging levels
-#define LIBSGXSTEP_DEBUG            1
+#define LIBSGXSTEP_DEBUG            0
 
 #define PSTATE_PCT                  100
 #define SINGLE_STEP_ENABLE          1
@@ -38,7 +38,7 @@
 
 #define VICTIM_CPU                  1
 #define NUM_CORES                   4
-#define SPY_CPU                     (VICTIM_CPU + NUM_CORES)
+#define SPY_CPU                     (NUM_CORES-1)
 
 /*
  * XXX Configure APIC timer interval for next interrupt.
