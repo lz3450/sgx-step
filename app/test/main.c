@@ -4,16 +4,18 @@
 #include "libsgxstep/cpu.h"
 #include "libsgxstep/sched.h"
 #include "libsgxstep/config.h"
+#include <stdint.h>
 
-#define DO_APIC_SW_IRQ  1
+#define DO_APIC_SW_IRQ  0
 #define DO_APIC_TMR_IRQ 1
 #define DO_EXEC_PRIV    0
-#define NUM             100
-#define NEMESIS_HIGH    0
+#define NUM             1000
+#define NEMESIS_HIGH    1
 
 int             cpl = -1;
 uint64_t        flags = 0;
-extern uint32_t nemesis_tsc_aex, nemesis_tsc_eresume;
+uint64_t        cnt = 0;
+extern uint64_t nemesis_tsc_aex, nemesis_tsc_eresume;
 
 void pre_irq(void)
 {
@@ -33,7 +35,7 @@ void do_irq_sw(void)
 void do_irq_tmr(void)
 {
     pre_irq();
-    apic_timer_irq(10);
+    apic_timer_irq(SGX_STEP_TIMER_INTERVAL);
 
     /*
      * Ring-0 `exec_priv` handler executes with interrupts disabled FLAGS.IF=0
@@ -46,7 +48,10 @@ void do_irq_tmr(void)
     while (!__ss_irq_fired)
     {
 #if NEMESIS_HIGH
-        asm("rdrand %rax\n\t");
+        asm("incq %0\n\t"
+            : "=r"(cnt)
+            : "0"(cnt));
+        // asm("rdrand %rax\n\t");
 #else
         asm("nop\n\t");
 #endif
@@ -82,7 +87,7 @@ void do_irq_test(int do_exec_priv)
             ;
         post_irq("APIC timer");
     }
-    apic_timer_deadline();
+    apic_timer_deadline(IRQ_VECTOR);
 #endif
 }
 
@@ -105,7 +110,7 @@ void do_irq_test_tmr(int number)
         do_irq_tmr();
         post_irq("APIC timer");
     }
-    apic_timer_deadline();
+    apic_timer_deadline(IRQ_VECTOR);
 }
 
 int main(int argc, char **argv)
@@ -130,6 +135,6 @@ int main(int argc, char **argv)
     do_irq_test_tmr(NUM);
 #endif
 
-    info("all is well; irq_count=%d; exiting..", __ss_irq_count);
+    info("all is well; irq_count=%d, cnt=%d; exiting..", __ss_irq_count, cnt);
     return 0;
 }

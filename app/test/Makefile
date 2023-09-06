@@ -54,4 +54,4 @@ $(CLEANDIRS) :
 	$(MAKE) clean -C $(@:clean-%=%)
 
 run: clean all
-	sudo ./app
+	sudo ./app > out.txt
