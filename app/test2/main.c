@@ -1,3 +1,4 @@
+#include <sys/mman.h>
 #include <sgx_urts.h>
 #include "enclave/enclave_u.h"
 #include <signal.h>
@@ -16,17 +17,18 @@
 #endif
 
 sgx_enclave_id_t eid = 0;
+int              strlen_nb_access = 0;
 int              irq_cnt = 0, do_irq = 1, fault_cnt = 0;
-uint64_t        *pte_encl = NULL;
-uint64_t        *pte_str_encl = NULL;
-uint64_t        *pmd_encl = NULL;
+uint64_t        *pte_enclave = NULL;
+uint64_t        *pte_str_enclave = NULL;
+uint64_t        *pmd_enclave = NULL;
 uint64_t         cycles_cnt;
 
 /* Called upon SIGSEGV caused by untrusted page tables. */
 void fault_handler(int signal)
 {
     info("Caught fault %d! Restoring enclave page permissions..", signal);
-    *pte_encl = MARK_NOT_EXECUTE_DISABLE(*pte_encl);
+    *pte_enclave = MARK_NOT_EXECUTE_DISABLE(*pte_enclave);
     ASSERT(fault_cnt++ < 10);
 
     // NOTE: return eventually continues at aep_cb_func and initiates
@@ -38,7 +40,7 @@ void aep_cb_func(void)
 {
     uint64_t erip = edbgrd_erip() - (uint64_t)get_enclave_base();
     cycles_cnt = nemesis_tsc_aex - nemesis_tsc_eresume;
-    info("^^ enclave RIP=%#llx; ACCESSED=%d, cycles=%d", erip, ACCESSED(*pte_encl), cycles_cnt);
+    info("^^ enclave RIP=%#llx; ACCESSED=%d, cycles=%d", erip, ACCESSED(*pte_enclave), cycles_cnt);
     irq_cnt++;
 
     if (do_irq && (irq_cnt > NUM_RUNS * 500))
@@ -53,7 +55,7 @@ void aep_cb_func(void)
      * referencing the enclave code page about to be executed, so as to be able
      * to filter out "zero-step" results that won't set the accessed bit.
      */
-    *pte_encl = MARK_NOT_ACCESSED(*pte_encl);
+    *pte_enclave = MARK_NOT_ACCESSED(*pte_enclave);
 
     /*
      * Configure APIC timer interval for next interrupt.
@@ -66,7 +68,7 @@ void aep_cb_func(void)
      */
     if (do_irq)
     {
-        *pmd_encl = MARK_NOT_ACCESSED(*pmd_encl);
+        *pmd_enclave = MARK_NOT_ACCESSED(*pmd_enclave);
         apic_timer_irq(SGX_STEP_TIMER_INTERVAL);
     }
 }
@@ -97,18 +99,18 @@ void attacker_config_page_table(void)
 
     SGX_ASSERT(get_nop_address(eid, &code_address));
 
-    // print_page_table( code_adrs );
-    info("enclave trigger code address at %p\n", code_address);
-    ASSERT(pte_encl = remap_page_table_level(code_address, PTE));
+    // print_page_table(code_address);
+    info("enclave trigger code adrs at %p\n", code_address);
+    ASSERT(pte_enclave = remap_page_table_level(code_address, PTE));
 #if SINGLE_STEP_ENABLE
-    *pte_encl = MARK_EXECUTE_DISABLE(*pte_encl);
-    print_pte(pte_encl);
-    ASSERT(PRESENT(*pte_encl));
+    *pte_enclave = MARK_EXECUTE_DISABLE(*pte_enclave);
+    print_pte(pte_enclave);
+    ASSERT(PRESENT(*pte_enclave));
 #endif
 
-    // print_page_table( get_enclave_base() );
-    ASSERT(pmd_encl = remap_page_table_level(get_enclave_base(), PMD));
-    ASSERT(PRESENT(*pmd_encl));
+    // print_page_table(get_enclave_base());
+    ASSERT(pmd_enclave = remap_page_table_level(get_enclave_base(), PMD));
+    ASSERT(PRESENT(*pmd_enclave));
 }
 
 int main(int argc, char **argv)
@@ -118,12 +120,14 @@ int main(int argc, char **argv)
     idt_t              idt = {0};
 
     info_event("Creating enclave...");
-    SGX_ASSERT(sgx_create_enclave("./enclave/enclave.so", 1, &token, &updated, &eid, NULL));
+    SGX_ASSERT(sgx_create_enclave("./enclave/enclave.so", 1,
+                                  &token, &updated, &eid, NULL));
 
     /* 0. dry run */
     info("Dry run to allocate pages");
     SGX_ASSERT(nops(eid));
 
+    /* 1. Setup attack execution environment. */
     attacker_config_runtime();
     attacker_config_page_table();
     register_aep_cb(aep_cb_func);
@@ -138,7 +142,6 @@ int main(int argc, char **argv)
     SGX_ASSERT(nops(eid));
 
     /* 3. Restore normal execution environment. */
-    apic_timer_deadline();
     SGX_ASSERT(sgx_destroy_enclave(eid));
 
     info_event("all done; counted %d/%d IRQs (AEP/IDT)", irq_cnt, __ss_irq_count);
