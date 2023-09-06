@@ -16,7 +16,7 @@ clean:
 unload:
 	sudo rmmod $(LKM).ko || true
 
-load: unload all
+load: clean unload all
 	sudo modprobe -a isgx msr || true
 	sudo insmod $(LKM).ko
 	sudo dmesg | tail
