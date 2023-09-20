@@ -1,0 +1,9 @@
+enclave {
+	trusted {
+   	    public void ecall_profile_aex(void);
+		public void *get_ecall_profile_aex(void);
+	};
+
+	untrusted {
+	};
+};
