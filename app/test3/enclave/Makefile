@@ -67,7 +67,7 @@ $(OUTPUT_U) : $(UNTRUSTED_OBJECTS)
 	@clang $(INCLUDE) $(T_CFLAGS) -c $< -MJ $(subst .o,.o.json,$@)
 
 %.o : %.S
-	@echo "$(INDENT)[AS] " $< "(core)"
+	$(info AS	$<)
 	@$(CC) $(INCLUDE) $(T_CFLAGS) -c $< -o $@
 
 edger: $(ENCLAVE).edl

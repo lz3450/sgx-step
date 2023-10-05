@@ -1,5 +1,7 @@
 enclave {
 	trusted {
+   	    public void nops(void);
+		public void *get_nop_address(void);
    	    public void ecall_profile_aex(void);
 		public void *get_ecall_profile_aex(void);
 	};
